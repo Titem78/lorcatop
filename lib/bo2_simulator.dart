@@ -1,0 +1,260 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+
+class BO2SimulatorPage extends StatefulWidget {
+  const BO2SimulatorPage({super.key});
+
+  @override
+  State<BO2SimulatorPage> createState() => _BO2SimulatorPageState();
+}
+
+class _BO2SimulatorPageState extends State<BO2SimulatorPage> {
+  int numPlayersSlider = 32;
+  String customPlayers = '';
+  int get numPlayers => int.tryParse(customPlayers) ?? numPlayersSlider;
+
+  int numRounds = 5;
+  int topCut = 8;
+  Map<int, int> scoreOccurrences = {};
+  Map<int, int> scorePasses = {};
+  int? minScoreToQualify;
+  final int simulations = 1000;
+  bool showAllResults = false;
+  bool isLoading = false;
+
+  void updateDefaultsFromPlayers() {
+    int p = numPlayers;
+    int defaultRounds;
+    int defaultTopCut;
+
+    if (p <= 8) {
+      defaultRounds = 3;
+      defaultTopCut = 0;
+    } else if (p <= 16) {
+      defaultRounds = 5;
+      defaultTopCut = 4;
+    } else if (p <= 32) {
+      defaultRounds = 5;
+      defaultTopCut = 8;
+    } else if (p <= 64) {
+      defaultRounds = 6;
+      defaultTopCut = 8;
+    } else if (p <= 128) {
+      defaultRounds = 7;
+      defaultTopCut = 8;
+    } else if (p <= 226) {
+      defaultRounds = 8;
+      defaultTopCut = 8;
+    } else {
+      defaultRounds = 9;
+      defaultTopCut = 8;
+    }
+
+    setState(() {
+      numRounds = defaultRounds;
+      topCut = defaultTopCut;
+    });
+  }
+
+  void simulateBO2Tournament() {
+    final rand = Random();
+    Map<int, int> occurrences = {};
+    Map<int, int> passes = {};
+    Map<int, int> cutoffCounts = {};
+
+    for (int i = 0; i < simulations; i++) {
+      List<int> scores = List.filled(numPlayers, 0);
+
+      for (int r = 0; r < numRounds; r++) {
+        List<int> indices = List.generate(numPlayers, (i) => i);
+        indices.shuffle(rand);
+        for (int j = 0; j < indices.length - 1; j += 2) {
+          int p1 = indices[j];
+          int p2 = indices[j + 1];
+          double outcome = rand.nextDouble();
+
+          if (outcome < 0.25) {
+            scores[p1] += 7;
+          } else if (outcome < 0.5) {
+            scores[p2] += 7;
+          } else {
+            scores[p1] += 3;
+            scores[p2] += 3;
+          }
+        }
+      }
+
+      List<int> sorted = List.from(scores);
+      sorted.sort((a, b) => b.compareTo(a));
+      int cutoff = sorted[topCut - 1];
+      cutoffCounts[cutoff] = (cutoffCounts[cutoff] ?? 0) + 1;
+
+      for (int s in scores) {
+        occurrences[s] = (occurrences[s] ?? 0) + 1;
+        if (s >= cutoff) {
+          passes[s] = (passes[s] ?? 0) + 1;
+        }
+      }
+    }
+
+    setState(() {
+      scoreOccurrences = occurrences;
+      scorePasses = passes;
+      minScoreToQualify = cutoffCounts.entries
+          .reduce((a, b) => a.key < b.key ? a : b)
+          .key;
+    });
+  }
+
+  String interpretScore(double ratio, int count) {
+    if (count == 0) return "Jamais atteint";
+    if (ratio == 0.0) return "❌❌ Aucune chance. Tu es éliminé à ce score.";
+    if (ratio < 0.3) return "❌ Tu dois gagner. Draw = élimination probable.";
+    if (ratio < 0.6) return "⚠️ Tu dois gagner ou prier. C’est risqué.";
+    if (ratio < 0.8)
+      return "🟡 Tu dois sécuriser. Un draw ne suffit pas toujours.";
+    if (ratio < 0.95)
+      return "🟢 Ça passe presque toujours. Un ID peut suffire.";
+    return "✅ Oui, tu es dans le top. Pas besoin de prendre de risque.";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Simulation Complète BO2')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            const Text(
+              "⚠️ Cette application est une aide de jeu. Pour win, gagne tes matchs !",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Nombre de joueurs : $numPlayersSlider (ou personnalisé : $numPlayers)",
+            ),
+            Slider(
+              value: numPlayersSlider.toDouble(),
+              min: 8,
+              max: 512,
+              divisions: 63,
+              label: "$numPlayersSlider",
+              onChanged: (val) {
+                setState(() {
+                  numPlayersSlider = val.toInt();
+                  if (customPlayers.isEmpty) updateDefaultsFromPlayers();
+                });
+              },
+            ),
+            TextField(
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "Ou entrez un nombre personnalisé de joueurs",
+              ),
+              onChanged: (val) {
+                setState(() {
+                  customPlayers = val;
+                  updateDefaultsFromPlayers();
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            Text("Nombre de rondes : $numRounds"),
+            Slider(
+              value: numRounds.toDouble(),
+              min: 1,
+              max: 10,
+              divisions: 9,
+              label: "$numRounds",
+              onChanged: (val) {
+                setState(() {
+                  numRounds = val.toInt();
+                });
+              },
+            ),
+            Text("Top Cut : Top $topCut"),
+            DropdownButton<int>(
+              value: topCut,
+              items: [0, 4, 8, 16, 32, 64, 128]
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(e == 0 ? "Aucun" : "Top $e"),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (val) {
+                setState(() {
+                  topCut = val!;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      setState(() => isLoading = true);
+                      await Future.delayed(Duration(milliseconds: 100));
+                      simulateBO2Tournament();
+                      setState(() => isLoading = false);
+                    },
+              child: Text(
+                isLoading ? "Calcul en cours..." : "Lancer la simulation",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (scoreOccurrences.isNotEmpty) ...[
+              Text(
+                'Score typique minimum pour Top $topCut : $minScoreToQualify',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text('Fréquence des scores du cutoff :'),
+              const SizedBox(height: 10),
+              ...(() {
+                final allScores = scoreOccurrences.keys.toList()..sort();
+                final displayed = allScores.where(
+                  (score) =>
+                      showAllResults ||
+                      scoreOccurrences[score]! / simulations >= 0.01 ||
+                      allScores.indexOf(score) < 5,
+                );
+                return displayed.map((score) {
+                  final freq = scoreOccurrences[score] ?? 0;
+                  final pass = scorePasses[score] ?? 0;
+                  final ratio = freq > 0 ? pass / freq : 0.0;
+                  final label = interpretScore(ratio, freq);
+                  final percentage =
+                      ((freq /
+                                  scoreOccurrences.values.reduce(
+                                    (a, b) => a + b,
+                                  )) *
+                              100)
+                          .toStringAsFixed(1);
+                  return Text(
+                    'Score $score : $freq fois ($percentage%) – $label',
+                  );
+                }).toList();
+              })(),
+              if (!showAllResults)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      showAllResults = true;
+                    });
+                  },
+                  child: const Text("Voir tous les résultats"),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

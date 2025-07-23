@@ -1,0 +1,297 @@
+// Cette version inclut :
+// - Splash screen au démarrage
+// - Fond animé orange/noir discret
+// - Footer avec mention Made4Game 2025
+// - BO2 marqué obsolète
+// - Accès sécurisé à la page PlayHub Debug (mot de passe 0106)
+
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
+
+import 'bo2_simulator.dart';
+import 'bo3_simulator.dart';
+import 'strategy_bo2_page.dart';
+import 'strategy_bo3_page.dart';
+import 'strategy_playhub_page.dart'; // si tu l'as déjà créée
+import 'playhub_debug_page.dart';
+import 'about_page.dart';
+
+void main() {
+  runApp(const LorcaTopApp());
+}
+
+class LorcaTopApp extends StatelessWidget {
+  const LorcaTopApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'LorcaTop - Outil de Simulation',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.deepOrange,
+        scaffoldBackgroundColor: Colors.black,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepOrange,
+            foregroundColor: Colors.white,
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.orange,
+        ),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.white),
+          titleLarge: TextStyle(color: Colors.orange),
+        ),
+      ),
+      debugShowCheckedModeBanner: false,
+      home: const SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Timer(const Duration(seconds: 2), () {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Image(image: AssetImage('assets/lorcatoplogo.png'), height: 180),
+      ),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  void _launchMade4Game() async {
+    final url = Uri.parse('https://www.made4game.com');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.black, Colors.deepOrange],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 36.0,
+            ),
+            child: ListView(
+              children: [
+                const SizedBox(height: 10),
+                Center(
+                  child: Image.asset(
+                    'assets/lorcatoplogo.png',
+                    height: 140,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Center(
+                  child: InkWell(
+                    onTap: _launchMade4Game,
+                    child: Image.asset(
+                      'assets/logo.png',
+                      height: 72,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Text(
+                  'Bienvenue ! Choisissez une fonctionnalité :',
+                  style: TextStyle(fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.bar_chart),
+                  label: const Text('Simulation Complète BO2 (Obsolète)'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BO2SimulatorPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.bar_chart),
+                  label: const Text('Simulation Complète BO3'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BO3SimulatorPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.query_stats),
+                  label: const Text('Stratégie Ronde Actuelle BO2 (Obsolète)'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StrategyBO2Page(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.query_stats),
+                  label: const Text('Stratégie Ronde Actuelle BO3'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StrategyBO3Page(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.api),
+                  label: const Text('Stratégie PlayHub (Connecté)'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StrategyPlayhubPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.lock_outline),
+                  label: const Text('PlayHub Debug 🔒'),
+                  onPressed: () async {
+                    final controller = TextEditingController();
+                    final result = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Mot de passe requis'),
+                        content: TextField(
+                          controller: controller,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Mot de passe',
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            child: const Text('Annuler'),
+                            onPressed: () => Navigator.pop(context, false),
+                          ),
+                          ElevatedButton(
+                            child: const Text('Valider'),
+                            onPressed: () {
+                              Navigator.pop(context, controller.text == '0106');
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (result == true) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PlayhubDebugPage(),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.info_outline),
+                  label: const Text('À propos'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AboutPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Center(
+                  child: Text(
+                    'Made4Game © 2025',
+                    style: TextStyle(color: Colors.orange, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
